@@ -335,7 +335,7 @@ def is_token_limit_exceeded(exception: Exception, model_name: str = None) -> boo
     provider = None
     if model_name:
         model_str = str(model_name).lower()
-        if model_str.startswith('openai:'):
+        if model_str.startswith('openai:') or model_str.startswith('azure_openai:'):
             provider = 'openai'
         elif model_str.startswith('anthropic:'):
             provider = 'anthropic'
@@ -408,6 +408,15 @@ MODEL_TOKEN_LIMITS = {
     "openai:o3-pro": 200000,
     "openai:o1": 200000,
     "openai:o1-pro": 200000,
+    # Azure OpenAI models (same limits as OpenAI counterparts)
+    "azure_openai:gpt-4.1": 1047576,
+    "azure_openai:gpt-4.1-mini": 1047576,
+    "azure_openai:gpt-4o": 128000,
+    "azure_openai:gpt-4o-mini": 128000,
+    "azure_openai:gpt-4": 128000,
+    "azure_openai:gpt-4-32k": 32768,
+    "azure_openai:gpt-35-turbo": 16385,
+    "azure_openai:gpt-35-turbo-16k": 16385,
     "anthropic:claude-opus-4": 200000,
     "anthropic:claude-sonnet-4": 200000,
     "anthropic:claude-3-7-sonnet": 200000,
@@ -448,7 +457,13 @@ def remove_up_to_last_ai_message(messages: list[MessageLikeRepresentation]) -> l
 ##########################
 def get_today_str() -> str:
     """Get current date in a human-readable format."""
-    return datetime.now().strftime("%a %b %-d, %Y")
+    # Use cross-platform format - %d gives zero-padded day, then strip leading zero if needed
+    date_str = datetime.now().strftime("%a %b %d, %Y")
+    # Remove leading zero from day if present (e.g., "07" -> "7")
+    parts = date_str.split()
+    if len(parts) >= 3 and parts[2].startswith('0') and len(parts[2]) == 3:  # "07," -> "7,"
+        parts[2] = parts[2][1:]
+    return " ".join(parts)
 
 def get_config_value(value):
     if value is None:
@@ -469,6 +484,8 @@ def get_api_key_for_model(model_name: str, config: RunnableConfig):
             return None
         if model_name.startswith("openai:"):
             return api_keys.get("OPENAI_API_KEY")
+        elif model_name.startswith("azure_openai:"):
+            return api_keys.get("AZURE_OPENAI_API_KEY")
         elif model_name.startswith("anthropic:"):
             return api_keys.get("ANTHROPIC_API_KEY")
         elif model_name.startswith("google"):
@@ -477,6 +494,8 @@ def get_api_key_for_model(model_name: str, config: RunnableConfig):
     else:
         if model_name.startswith("openai:"): 
             return os.getenv("OPENAI_API_KEY")
+        elif model_name.startswith("azure_openai:"):
+            return os.getenv("AZURE_OPENAI_API_KEY")
         elif model_name.startswith("anthropic:"):
             return os.getenv("ANTHROPIC_API_KEY")
         elif model_name.startswith("google"):

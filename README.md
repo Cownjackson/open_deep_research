@@ -27,6 +27,28 @@ uv pip install -r pyproject.toml
 cp .env.example .env
 ```
 
+### Azure OpenAI Setup
+
+This project is configured to use Azure OpenAI by default. To set up Azure OpenAI:
+
+1. **Create an Azure OpenAI resource** in the Azure portal
+2. **Deploy the required models** in your Azure OpenAI resource:
+   - `gpt-4.1` (for research and final report generation)
+   - `gpt-4.1-mini` (for summarization and compression)
+3. **Update your `.env` file** with your Azure OpenAI credentials:
+```bash
+AZURE_OPENAI_API_KEY=your_azure_openai_api_key
+AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+AZURE_OPENAI_API_VERSION=2024-08-01-preview
+OPENAI_API_VERSION=2024-08-01-preview  # Required by Azure OpenAI client
+TAVILY_API_KEY=your_tavily_api_key  # Required for web search
+```
+
+4. **Test the integration** (optional):
+```bash
+python test_azure_integration.py
+```
+
 4. Launch the assistant with the LangGraph server locally to open LangGraph Studio in your browser:
 
 ```bash
@@ -64,10 +86,10 @@ Open Deep Research offers extensive configuration options to customize the resea
 
 Open Deep Research uses multiple specialized models for different research tasks:
 
-- **Summarization Model** (default: `openai:gpt-4.1-nano`): Summarizes research results from search APIs
-- **Research Model** (default: `openai:gpt-4.1`): Conducts research and analysis 
-- **Compression Model** (default: `openai:gpt-4.1-mini`): Compresses research findings from sub-agents
-- **Final Report Model** (default: `openai:gpt-4.1`): Writes the final comprehensive report
+- **Summarization Model** (default: `azure_openai:gpt-4.1-mini`): Summarizes research results from search APIs
+- **Research Model** (default: `azure_openai:gpt-4.1`): Conducts research and analysis 
+- **Compression Model** (default: `azure_openai:gpt-4.1-mini`): Compresses research findings from sub-agents
+- **Final Report Model** (default: `azure_openai:gpt-4.1`): Writes the final comprehensive report
 
 All models are configured using [init_chat_model() API](https://python.langchain.com/docs/how_to/chat_models_universal_init/) which supports providers like OpenAI, Anthropic, Google Vertex AI, and others.
 
