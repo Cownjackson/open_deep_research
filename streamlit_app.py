@@ -12,7 +12,7 @@ from datetime import datetime
 import uuid
 
 # Configuration
-LANGGRAPH_API_URL = "http://strategy-ai:2024"
+LANGGRAPH_API_URL = "http://localhost:2024"
 
 def check_server_health():
     """Check if the LangGraph server is running."""
@@ -55,17 +55,56 @@ def create_thread():
         st.error(f"Failed to create thread: {e}")
         return None
 
+def get_assistant_id():
+    """Get the Deep Researcher assistant ID."""
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer dev-token"
+        }
+        
+        response = requests.post(f"{LANGGRAPH_API_URL}/assistants/search", json={}, headers=headers)
+        if response.status_code == 200:
+            assistants = response.json()
+            
+            # Debug: Show what assistants we found
+            st.write(f"Found {len(assistants)} assistants:")
+            for i, assistant in enumerate(assistants):
+                st.write(f"Assistant {i}: {assistant}")
+            
+            # Look for the Deep Researcher assistant
+            for assistant in assistants:
+                if assistant.get("name") == "Deep Researcher":
+                    return assistant.get("assistant_id")
+            
+            # If not found by name, return the first one
+            if assistants:
+                first_assistant = assistants[0]
+                assistant_id = first_assistant.get("assistant_id") or first_assistant.get("id")
+                st.info(f"Using first available assistant: {first_assistant.get('name', 'Unknown')} (ID: {assistant_id})")
+                return assistant_id
+                
+        else:
+            st.error(f"Assistant search failed: {response.status_code} - {response.text}")
+        return None
+    except Exception as e:
+        st.error(f"Failed to get assistant ID: {e}")
+        return None
+
 def submit_research_query(thread_id, question):
     """Submit a research query and stream the response."""
     try:
+        # Try different approaches to submit the research query
+        
+        # Approach 1: Try with graph name directly
         url = f"{LANGGRAPH_API_URL}/threads/{thread_id}/runs/stream"
         payload = {
+            "graph_id": "Deep Researcher",  # Use graph_id instead of assistant_id
             "input": {
                 "messages": [{"role": "user", "content": question}]
             }
         }
         
-        # Add authorization header for development
         headers = {
             "Content-Type": "application/json",
             "Authorization": "Bearer dev-token"
@@ -75,12 +114,69 @@ def submit_research_query(thread_id, question):
         
         if response.status_code == 200:
             return response
-        else:
-            st.error(f"API Error: {response.status_code} - {response.text}")
-            return None
+        
+        # Approach 2: Try without graph_id/assistant_id (some APIs auto-detect)
+        payload = {
+            "input": {
+                "messages": [{"role": "user", "content": question}]
+            }
+        }
+        
+        response = requests.post(url, json=payload, headers=headers, stream=True)
+        
+        if response.status_code == 200:
+            return response
+        
+        # Approach 3: Try creating an assistant first
+        assistant_id = create_assistant_if_needed()
+        if assistant_id:
+            payload = {
+                "assistant_id": assistant_id,
+                "input": {
+                    "messages": [{"role": "user", "content": question}]
+                }
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, stream=True)
+            
+            if response.status_code == 200:
+                return response
+        
+        st.error(f"All approaches failed. Last API Error: {response.status_code} - {response.text}")
+        return None
             
     except Exception as e:
         st.error(f"Request failed: {e}")
+        return None
+
+def create_assistant_if_needed():
+    """Create the Deep Researcher assistant if it doesn't exist."""
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer dev-token"
+        }
+        
+        # Try to create an assistant
+        payload = {
+            "graph_id": "Deep Researcher",
+            "name": "Deep Researcher",
+            "description": "AI-powered deep research agent"
+        }
+        
+        response = requests.post(f"{LANGGRAPH_API_URL}/assistants", json=payload, headers=headers)
+        
+        if response.status_code in [200, 201]:
+            result = response.json()
+            assistant_id = result.get("assistant_id") or result.get("id")
+            st.success(f"Created assistant: {assistant_id}")
+            return assistant_id
+        else:
+            st.warning(f"Could not create assistant: {response.status_code} - {response.text}")
+            return None
+            
+    except Exception as e:
+        st.warning(f"Failed to create assistant: {e}")
         return None
 
 def parse_streaming_response(response):
