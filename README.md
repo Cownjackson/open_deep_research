@@ -49,6 +49,36 @@ TAVILY_API_KEY=your_tavily_api_key  # Required for web search
 python test_azure_integration.py
 ```
 
+## 🎨 Streamlit Web Interface
+
+For a user-friendly web interface, you can use the included Streamlit app instead of the Studio UI:
+
+### Quick Start with Streamlit
+```bash
+# Option 1: Run both services together (recommended)
+python run_local_server.py
+
+# Option 2: Run services separately
+# Terminal 1: Start LangGraph server
+uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev --allow-blocking
+
+# Terminal 2: Start Streamlit app
+streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+```
+
+### Access Points
+- **Streamlit Interface**: http://localhost:8501 (or http://YOUR_LOCAL_IP:8501 from other devices)
+- **LangGraph API**: http://localhost:2024
+- **API Documentation**: http://localhost:2024/docs
+
+### Streamlit Features
+- ✅ **Secure local hosting** - No public internet exposure
+- ✅ **Real-time research progress** - See the agent working
+- ✅ **Research history** - Save and review past research
+- ✅ **Download reports** - Export research as Markdown files
+- ✅ **Network accessible** - Use from any device on your local network
+- ✅ **Clean interface** - No need for LangGraph Studio
+
 4. Launch the assistant with the LangGraph server locally to open LangGraph Studio in your browser:
 
 ```bash
