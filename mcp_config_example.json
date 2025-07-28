@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "deep-research": {
+      "command": "python",
+      "args": ["mcp_deep_research_server.py"],
+      "cwd": ".",
+      "env": {
+        "PYTHONPATH": "."
+      },
+      "disabled": false,
+      "autoApprove": ["check_research_server"]
+    }
+  }
+}

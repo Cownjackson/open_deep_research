@@ -49,6 +49,55 @@ TAVILY_API_KEY=your_tavily_api_key  # Required for web search
 python test_azure_integration.py
 ```
 
+## 🔌 MCP Server Integration
+
+This project includes an MCP (Model Context Protocol) server that exposes the deep research functionality as tools for AI agents. This allows other AI systems to use the research capabilities programmatically.
+
+### Setting up the MCP Server
+
+1. **Start the LangGraph development server** (required for MCP server to work):
+```bash
+uvx --refresh --from "langgraph-cli[inmem]" --with-editable . --python 3.11 langgraph dev --allow-blocking --config langgraph.dev.json
+```
+
+2. **Test the MCP server**:
+```bash
+python test_mcp_server.py
+```
+
+3. **Configure your MCP client** using the example configuration:
+```json
+{
+  "mcpServers": {
+    "deep-research": {
+      "command": "python",
+      "args": ["mcp_deep_research_server.py"],
+      "cwd": ".",
+      "env": {
+        "PYTHONPATH": "."
+      },
+      "disabled": false,
+      "autoApprove": ["check_research_server"]
+    }
+  }
+}
+```
+
+### Available MCP Tools
+
+- **`conduct_research`**: Conduct deep research on a given topic and return a comprehensive report
+  - Parameters: `question` (required), `timeout` (optional, default 300s), `new_session` (optional, default false)
+- **`check_research_server`**: Check if the deep research server is running and available
+
+### Usage Example
+
+Once configured, AI agents can use the research tool like this:
+```
+Please research the latest developments in quantum computing and provide a comprehensive report.
+```
+
+The MCP server will handle the research process and return a detailed report that the agent can use or present to users.
+
 ## 🎨 Streamlit Web Interface
 
 For a user-friendly web interface, you can use the included Streamlit app instead of the Studio UI:
