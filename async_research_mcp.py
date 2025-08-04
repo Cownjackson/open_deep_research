@@ -53,7 +53,7 @@ def create_thread():
         pass
     return None
 
-async def poll_for_completion(thread_id: str, run_id: str, max_wait: int = 120) -> Dict:
+async def poll_for_completion(thread_id: str, run_id: str, max_wait: int = 720) -> Dict:
     """Async polling for research completion."""
     start_time = time.time()
     
@@ -229,7 +229,13 @@ def get_research_results(session_id: str) -> str:
             if final_report:
                 # Clean up session
                 del active_sessions[session_id]
-                return f"# Research Results\n\n**Session:** {session_id}\n**Question:** {question}\n\n{final_report}"
+                return f"""RESEARCH_REPORT_START
+
+{final_report}
+
+RESEARCH_REPORT_END
+
+[This is the complete research report. Present it to the user exactly as shown above between the RESEARCH_REPORT_START and RESEARCH_REPORT_END markers, without adding commentary, summary, or modifications.]"""
             
             # Check for clarification request
             messages = values.get("messages", [])
@@ -343,7 +349,7 @@ def research_question(question: str, allow_clarification: bool = True) -> str:
     
     # Poll for completion (with shorter timeout for sync behavior)
     start_time = time.time()
-    timeout = 120  # 2 minutes
+    timeout = 720  # 2 minutes
     
     while time.time() - start_time < timeout:
         progress = check_research_progress(session_id)
@@ -358,7 +364,7 @@ def research_question(question: str, allow_clarification: bool = True) -> str:
     return f"⏰ Research is taking longer than expected. Session {session_id} may still be running. Use check_research_progress('{session_id}') to monitor."
 
 @mcp.tool()
-def research_question_sync(question: str, allow_clarification: bool = True, timeout: int = 120) -> str:
+def research_question_sync(question: str, allow_clarification: bool = True, timeout: int = 720) -> str:
     """
     Research a question synchronously (blocks until complete). 
     Use this for simple cases where you want to wait for results.
@@ -399,7 +405,7 @@ def continue_research_with_clarification(clarification_answer: str) -> str:
     
     # Wait for completion (like the sync version)
     start_time = time.time()
-    timeout = 120
+    timeout = 720
     
     while time.time() - start_time < timeout:
         progress = check_research_progress(latest_session_id)
