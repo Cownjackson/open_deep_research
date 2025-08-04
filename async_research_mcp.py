@@ -318,6 +318,46 @@ def list_active_sessions() -> str:
     return result
 
 @mcp.tool()
+def research_question(question: str, allow_clarification: bool = True) -> str:
+    """
+    Research a question using the Deep Researcher. This is the main research tool.
+    This version is backward compatible but uses async sessions internally.
+    
+    Args:
+        question: The research question or topic to investigate
+        allow_clarification: Whether to allow the system to ask clarifying questions
+    
+    Returns:
+        The research results, clarifying question, or status
+    """
+    # Start research
+    start_result = start_research(question, allow_clarification)
+    if "❌" in start_result:
+        return start_result
+    
+    # Extract session ID
+    try:
+        session_id = start_result.split("Session ID: **")[1].split("**")[0]
+    except:
+        return "❌ Could not extract session ID from start result"
+    
+    # Poll for completion (with shorter timeout for sync behavior)
+    start_time = time.time()
+    timeout = 120  # 2 minutes
+    
+    while time.time() - start_time < timeout:
+        progress = check_research_progress(session_id)
+        
+        if "✅ Research completed" in progress:
+            return get_research_results(session_id)
+        elif "❌" in progress:
+            return progress
+        
+        time.sleep(2)
+    
+    return f"⏰ Research is taking longer than expected. Session {session_id} may still be running. Use check_research_progress('{session_id}') to monitor."
+
+@mcp.tool()
 def research_question_sync(question: str, allow_clarification: bool = True, timeout: int = 120) -> str:
     """
     Research a question synchronously (blocks until complete). 
@@ -331,27 +371,58 @@ def research_question_sync(question: str, allow_clarification: bool = True, time
     Returns:
         The research results or clarification request
     """
-    # Start research
-    start_result = start_research(question, allow_clarification)
-    if "❌" in start_result:
-        return start_result
+    return research_question(question, allow_clarification)
+
+@mcp.tool()
+def continue_research_with_clarification(clarification_answer: str) -> str:
+    """
+    Continue research after providing clarification to a previous question.
+    This is backward compatible - it finds the most recent session needing clarification.
     
-    # Extract session ID
-    session_id = start_result.split("Session ID: **")[1].split("**")[0]
+    Args:
+        clarification_answer: Your answer to the clarification question
     
-    # Poll for completion
+    Returns:
+        The research results or status
+    """
+    # Find the most recent session that might need clarification
+    if not active_sessions:
+        return "❌ No active research sessions found. Please start a new research session."
+    
+    # Get the most recent session (simple heuristic)
+    latest_session_id = max(active_sessions.keys(), key=lambda x: active_sessions[x]["started_at"])
+    
+    # Continue research with that session
+    continue_result = continue_research(latest_session_id, clarification_answer)
+    if "❌" in continue_result:
+        return continue_result
+    
+    # Wait for completion (like the sync version)
     start_time = time.time()
+    timeout = 120
+    
     while time.time() - start_time < timeout:
-        progress = check_research_progress(session_id)
+        progress = check_research_progress(latest_session_id)
         
         if "✅ Research completed" in progress:
-            return get_research_results(session_id)
+            return get_research_results(latest_session_id)
         elif "❌" in progress:
             return progress
         
         time.sleep(2)
     
-    return f"⏰ Research timed out after {timeout} seconds. Session {session_id} may still be running."
+    return f"⏰ Research is taking longer than expected. Session {latest_session_id} may still be running."
+
+@mcp.tool()
+def get_current_thread_info() -> str:
+    """
+    Get information about current research threads.
+    Shows all active sessions for backward compatibility.
+    
+    Returns:
+        Thread information or status
+    """
+    return list_active_sessions()
 
 @mcp.tool()
 def check_research_status() -> str:
