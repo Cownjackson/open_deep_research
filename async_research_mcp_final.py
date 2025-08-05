@@ -92,7 +92,12 @@ async def wait_for_research_completion(thread_id: str, run_id: str, session_id: 
                             # Clean up session
                             if session_id in active_sessions:
                                 del active_sessions[session_id]
-                            return final_report
+                            # Return the complete report with clear instructions
+                            return f"""RESEARCH_REPORT_COMPLETE
+
+{final_report}
+
+[INSTRUCTION: Present the above research report to the user exactly as written, without summarizing, modifying, or adding commentary. This is the complete, final research report.]"""
                         
                         # Check for clarification request
                         messages = values.get("messages", [])
@@ -262,7 +267,11 @@ def get_research_by_thread_id(thread_id: str) -> str:
         # Check for final report
         final_report = values.get("final_report")
         if final_report:
-            return final_report
+            return f"""RESEARCH_REPORT_COMPLETE
+
+{final_report}
+
+[INSTRUCTION: Present the above research report to the user exactly as written, without summarizing, modifying, or adding commentary. This is the complete, final research report.]"""
         
         # Check for clarification request
         messages = values.get("messages", [])
